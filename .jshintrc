@@ -1,0 +1,11 @@
+{
+	"loopfunc": true,
+	"camelcase": false,
+	"node": true,
+	"browser": true,
+	"globals": {
+		"exports": false,
+	    "define": false,
+	    "module": false
+	}
+}
