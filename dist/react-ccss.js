@@ -1,5 +1,5 @@
 /**
- * react-ccss.js v0.0.0
+ * react-ccss.js v0.0.1
  */
 var ReactCCSS =
 /******/ (function(modules) { // webpackBootstrap
@@ -84,6 +84,11 @@ var ReactCCSS =
 				spec.render = function () {
 					var node = render.apply(this, arguments);
 					DOM.addClassPrefixToNode(node, spec.displayName);
+					/* *
+					 * handles the scenario where a component is directly 
+					 * returning another component and we need to merge the classes
+					 */
+					DOM.addClassesToNode(node, this.props.className);
 					return node;
 				};
 			}
@@ -162,6 +167,23 @@ var ReactCCSS =
 		}
 	}
 	
+	function addClassesToNode (node, classes) {
+		if (!node || !node.props || !classes || !node.props.className) {
+			return;
+		}
+	
+		var classArray = node.props.className.split(' ');
+	
+		classes.split(' ').forEach(function (item) {
+			if (classArray.indexOf(item) === -1) {
+				classArray.push(item);
+			}
+		});
+	
+		node.props.className = classArray.join(' ');
+	}
+	
+	exports.addClassesToNode = addClassesToNode;
 	exports.addClassPrefixToNode = addClassPrefixToNode;
 
 /***/ },
