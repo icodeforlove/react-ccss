@@ -1,5 +1,5 @@
 /**
- * react-ccss.js v0.0.1
+ * react-ccss.js v0.0.2
  */
 var ReactCCSS =
 /******/ (function(modules) { // webpackBootstrap
@@ -118,7 +118,7 @@ var ReactCCSS =
 	}
 	
 	function addClassPrefixToNode (node, displayName, _isChild) {		
-		if (!node || !node.props) {
+		if (!node || !node.props || !displayName) {
 			return;
 		}
 	
@@ -188,7 +188,7 @@ var ReactCCSS =
 
 /***/ },
 /* 3 */
-/***/ function(module, exports, __webpack_require__) {
+/***/ function(module, exports) {
 
 	'use strict';
 	
@@ -204,5 +204,5 @@ var ReactCCSS =
 	module.exports = toHyphenDelimited;
 
 /***/ }
-/******/ ])
+/******/ ]);
 //# sourceMappingURL=react-ccss.js.map

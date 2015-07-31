@@ -1,6 +1,6 @@
 {
   "name": "react-ccss",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "CCSS wrapper for react!",
   "main": "index.js",
   "scripts": {
