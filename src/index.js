@@ -1,4 +1,4 @@
-import clone from 'clone';
+import copy from 'shallow-copy';
 
 function toHyphenDelimited (string) {
   return string.replace(/([a-z][A-Z])/g, g => {
@@ -21,9 +21,9 @@ function addClassPrefixToNode (node, displayName, _isChild) {
 		return node;
 	}
 
-	node = clone(node);
+	node = copy(node);
 
-	let props = node.props = clone(node.props),
+	let props = node.props = copy(node.props),
 		prefix = 'app-' + toHyphenDelimited(displayName);
 
 	if (props.classes) {
@@ -78,8 +78,8 @@ function addClassesToNode (node, classes) {
 		return node;
 	}
 
-	node = clone(node);
-	node.props = clone(node.props);
+	node = copy(node);
+	node.props = copy(node.props);
 
 	let classArray = node.props.className.split(' ');
 

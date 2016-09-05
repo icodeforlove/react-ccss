@@ -8,9 +8,9 @@ var _keys = require('babel-runtime/core-js/object/keys');
 
 var _keys2 = _interopRequireDefault(_keys);
 
-var _clone = require('clone');
+var _shallowCopy = require('shallow-copy');
 
-var _clone2 = _interopRequireDefault(_clone);
+var _shallowCopy2 = _interopRequireDefault(_shallowCopy);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -35,9 +35,9 @@ function addClassPrefixToNode(node, displayName, _isChild) {
 		return node;
 	}
 
-	node = (0, _clone2.default)(node);
+	node = (0, _shallowCopy2.default)(node);
 
-	var props = node.props = (0, _clone2.default)(node.props),
+	var props = node.props = (0, _shallowCopy2.default)(node.props),
 	    prefix = 'app-' + toHyphenDelimited(displayName);
 
 	if (props.classes) {
@@ -92,8 +92,8 @@ function addClassesToNode(node, classes) {
 		return node;
 	}
 
-	node = (0, _clone2.default)(node);
-	node.props = (0, _clone2.default)(node.props);
+	node = (0, _shallowCopy2.default)(node);
+	node.props = (0, _shallowCopy2.default)(node.props);
 
 	var classArray = node.props.className.split(' ');
 
