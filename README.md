@@ -1,1 +1,1 @@
-# React Component CSS (CCSS)
+# react-ccss

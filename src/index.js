@@ -1,28 +1,34 @@
-'use strict';
+import clone from 'clone';
 
-var toHyphenDelimited = require('./toHyphenDelimited');
+function toHyphenDelimited (string) {
+  return string.replace(/([a-z][A-Z])/g, g => {
+    return g[0] + '-' + g[1];
+  }).toLowerCase();
+}
 
 function addPrefixToClassName (prefix, className) {
 	return prefix + '_' + toHyphenDelimited(className);
 }
 
 function addClassPrefixToClassString (prefix, classString) {
-	return classString.split(' ').map(function (className) {
+	return classString.split(' ').map(className => {
 		return addPrefixToClassName(prefix, className);
 	}).join(' ');
 }
 
-function addClassPrefixToNode (node, displayName, _isChild) {		
+function addClassPrefixToNode (node, displayName, _isChild) {
 	if (!node || !node.props || !displayName) {
-		return;
+		return node;
 	}
 
-	var props = node.props,
+	node = clone(node);
+
+	let props = node.props = clone(node.props),
 		prefix = 'app-' + toHyphenDelimited(displayName);
 
 	if (props.classes) {
 		// precompute class names
-		props.classes = props.classes.split(' ').map(function (className) {
+		props.classes = props.classes.split(' ').map(className => {
 			// replace state shorthand
 			className = className.replace(/^\:\:\:/, 'state-');
 			return className;
@@ -44,39 +50,70 @@ function addClassPrefixToNode (node, displayName, _isChild) {
 	} else if (!props.className && props.classes) {
 		props.className = props.classes;
 	}
+
 	delete props.classes;
 
 	// continue walking the node tree
 	if (props.children && props.children !== 'string') {
-		traverseDOMTree(displayName, props.children);
+		props.children = traverseDOMTree(displayName, props.children);
 	}
+
+	return node;
 }
 
 function traverseDOMTree (displayName, item) {
 	if (Array.isArray(item)) {
-		item.forEach(function (item) {
-			traverseDOMTree(displayName, item);
+		return item.map(item => {
+			return traverseDOMTree(displayName, item);
 		});
 	} else if (item && item.props) {
-		addClassPrefixToNode(item, displayName, true);
+		return addClassPrefixToNode(item, displayName, true);
+	} else {
+		return item;
 	}
 }
 
 function addClassesToNode (node, classes) {
 	if (!node || !node.props || !classes || !node.props.className) {
-		return;
+		return node;
 	}
 
-	var classArray = node.props.className.split(' ');
+	node = clone(node);
+	node.props = clone(node.props);
 
-	classes.split(' ').forEach(function (item) {
+	let classArray = node.props.className.split(' ');
+
+	classes.split(' ').forEach(item => {
 		if (classArray.indexOf(item) === -1) {
 			classArray.push(item);
 		}
 	});
 
 	node.props.className = classArray.join(' ');
+
+	return node;
 }
 
-exports.addClassesToNode = addClassesToNode;
-exports.addClassPrefixToNode = addClassPrefixToNode;
+export default target => {
+	let render = target.prototype.render;
+
+	target.prototype.render = function () {
+		let node = render.apply(this, arguments);
+		node = addClassPrefixToNode(node, this.constructor.name);
+		node = addClassesToNode(node, this.props.className);
+		return node;
+	};
+
+	target.prototype.ccss = classList => {
+		let classes = [];
+
+		Object.keys(classList).forEach(className => {
+			if (classList[className]) {
+				classes.push(className);
+			}
+		});
+
+		return classes.join(' ');
+    };
+    return target;
+};
