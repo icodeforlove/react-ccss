@@ -108,28 +108,30 @@ function addClassesToNode(node, classes) {
 	return node;
 }
 
-exports.default = function (target) {
-	var render = target.prototype.render;
+exports.default = function (componentName) {
+	return function (target) {
+		var render = target.prototype.render;
 
-	target.prototype.render = function () {
-		var node = render.apply(this, arguments);
-		node = addClassPrefixToNode(node, this.constructor.name);
-		node = addClassesToNode(node, this.props.className);
-		return node;
+		target.prototype.render = function () {
+			var node = render.apply(this, arguments);
+			node = addClassPrefixToNode(node, componentName);
+			node = addClassesToNode(node, this.props.className);
+			return node;
+		};
+
+		target.prototype.ccss = function (classList) {
+			var classes = [];
+
+			(0, _keys2.default)(classList).forEach(function (className) {
+				if (classList[className]) {
+					classes.push(className);
+				}
+			});
+
+			return classes.join(' ');
+		};
+		return target;
 	};
-
-	target.prototype.ccss = function (classList) {
-		var classes = [];
-
-		(0, _keys2.default)(classList).forEach(function (className) {
-			if (classList[className]) {
-				classes.push(className);
-			}
-		});
-
-		return classes.join(' ');
-	};
-	return target;
 };
 
 module.exports = exports['default'];

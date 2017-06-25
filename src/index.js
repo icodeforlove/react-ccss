@@ -2,7 +2,7 @@ import copy from 'shallow-copy';
 
 function toHyphenDelimited (string) {
   return string.replace(/([a-z][A-Z])/g, g => {
-    return g[0] + '-' + g[1];
+	return g[0] + '-' + g[1];
   }).toLowerCase();
 }
 
@@ -94,26 +94,28 @@ function addClassesToNode (node, classes) {
 	return node;
 }
 
-export default target => {
-	let render = target.prototype.render;
+export default componentName => {
+	return target => {
+		let render = target.prototype.render;
 
-	target.prototype.render = function () {
-		let node = render.apply(this, arguments);
-		node = addClassPrefixToNode(node, this.constructor.name);
-		node = addClassesToNode(node, this.props.className);
-		return node;
+		target.prototype.render = function () {
+			let node = render.apply(this, arguments);
+			node = addClassPrefixToNode(node, componentName);
+			node = addClassesToNode(node, this.props.className);
+			return node;
+		};
+
+		target.prototype.ccss = classList => {
+			let classes = [];
+
+			Object.keys(classList).forEach(className => {
+				if (classList[className]) {
+					classes.push(className);
+				}
+			});
+
+			return classes.join(' ');
+		};
+		return target;
 	};
-
-	target.prototype.ccss = classList => {
-		let classes = [];
-
-		Object.keys(classList).forEach(className => {
-			if (classList[className]) {
-				classes.push(className);
-			}
-		});
-
-		return classes.join(' ');
-    };
-    return target;
 };
