@@ -8,11 +8,23 @@ var _keys = require('babel-runtime/core-js/object/keys');
 
 var _keys2 = _interopRequireDefault(_keys);
 
-var _shallowCopy = require('shallow-copy');
-
-var _shallowCopy2 = _interopRequireDefault(_shallowCopy);
-
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function unfreezeObjectByShallowCopy(object) {
+	if (object.__UNFROZEN_BY_CCSS__) {
+		return object;
+	}
+
+	var copy = {};
+
+	Object.defineProperty(copy, '__UNFROZEN_BY_CCSS__', { enumerable: false, value: true, writable: false });
+
+	for (var property in object) {
+		copy[property] = object[property];
+	}
+
+	return copy;
+}
 
 function toHyphenDelimited(string) {
 	return string.replace(/([a-z][A-Z])/g, function (g) {
@@ -24,10 +36,30 @@ function addPrefixToClassName(prefix, className) {
 	return prefix + '_' + toHyphenDelimited(className);
 }
 
+var addClassPrefixToClassStringCache = {};
 function addClassPrefixToClassString(prefix, classString) {
-	return classString.split(' ').map(function (className) {
-		return addPrefixToClassName(prefix, className);
-	}).join(' ');
+	var cacheKey = prefix + ':' + classString;
+
+	if (addClassPrefixToClassStringCache[prefix + classString]) {
+		return addClassPrefixToClassStringCache[cacheKey];
+	} else {
+		return addClassPrefixToClassStringCache[cacheKey] = classString.split(' ').map(function (className) {
+			return addPrefixToClassName(prefix, className);
+		}).join(' ');
+	}
+}
+
+var precomputeClassesCache = {};
+function precomputeClasses(classes) {
+	if (precomputeClassesCache[classes]) {
+		return precomputeClassesCache[classes];
+	} else {
+		return precomputeClassesCache[classes] = classes.split(' ').map(function (className) {
+			// replace state shorthand
+			className = className.replace(/^\:\:\:/, 'state-');
+			return className;
+		}).join(' ');
+	}
 }
 
 function addClassPrefixToNode(node, displayName, _isChild) {
@@ -35,18 +67,14 @@ function addClassPrefixToNode(node, displayName, _isChild) {
 		return node;
 	}
 
-	node = (0, _shallowCopy2.default)(node);
+	node = unfreezeObjectByShallowCopy(node);
 
-	var props = node.props = (0, _shallowCopy2.default)(node.props),
+	var props = node.props = unfreezeObjectByShallowCopy(node.props),
 	    prefix = 'app-' + toHyphenDelimited(displayName);
 
 	if (props.classes) {
 		// precompute class names
-		props.classes = props.classes.split(' ').map(function (className) {
-			// replace state shorthand
-			className = className.replace(/^\:\:\:/, 'state-');
-			return className;
-		}).join(' ');
+		props.classes = precomputeClasses(props.classes);
 	}
 
 	// modify class strings
@@ -87,34 +115,41 @@ function traverseDOMTree(displayName, item) {
 	}
 }
 
+var addClassesToNodeCache = {};
 function addClassesToNode(node, classes) {
 	if (!node || !node.props || !classes || !node.props.className) {
 		return node;
 	}
 
-	node = (0, _shallowCopy2.default)(node);
-	node.props = (0, _shallowCopy2.default)(node.props);
+	node = unfreezeObjectByShallowCopy(node);
+	node.props = unfreezeObjectByShallowCopy(node.props);
 
-	var classArray = node.props.className.split(' ');
+	if (!addClassesToNodeCache[node.props.className]) {
+		(function () {
+			var classArray = node.props.className.split(' ');
 
-	classes.split(' ').forEach(function (item) {
-		if (classArray.indexOf(item) === -1) {
-			classArray.push(item);
-		}
-	});
+			classes.split(' ').forEach(function (item) {
+				if (classArray.indexOf(item) === -1) {
+					classArray.push(item);
+				}
+			});
 
-	node.props.className = classArray.join(' ');
+			node.props.className = addClassesToNodeCache[node.props.className] = classArray.join(' ');
+		})();
+	} else {
+		node.props.className = addClassesToNodeCache[node.props.className];
+	}
 
 	return node;
 }
 
-exports.default = function (componentName) {
+exports.default = function (displayName) {
 	return function (target) {
 		var render = target.prototype.render;
 
 		target.prototype.render = function () {
 			var node = render.apply(this, arguments);
-			node = addClassPrefixToNode(node, componentName);
+			node = addClassPrefixToNode(node, displayName);
 			node = addClassesToNode(node, this.props.className);
 			return node;
 		};

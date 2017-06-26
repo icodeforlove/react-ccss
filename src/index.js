@@ -1,4 +1,18 @@
-import copy from 'shallow-copy';
+function unfreezeObjectByShallowCopy (object) {
+	if (object.__UNFROZEN_BY_CCSS__) {
+		return object;
+	}
+
+	let copy = {};
+
+	Object.defineProperty(copy, '__UNFROZEN_BY_CCSS__', {enumerable: false, value: true, writable: false});
+
+	for (let property in object) {
+		copy[property] = object[property];
+	}
+
+	return copy;
+}
 
 function toHyphenDelimited (string) {
   return string.replace(/([a-z][A-Z])/g, g => {
@@ -10,10 +24,30 @@ function addPrefixToClassName (prefix, className) {
 	return prefix + '_' + toHyphenDelimited(className);
 }
 
+let addClassPrefixToClassStringCache = {};
 function addClassPrefixToClassString (prefix, classString) {
-	return classString.split(' ').map(className => {
-		return addPrefixToClassName(prefix, className);
-	}).join(' ');
+	let cacheKey = prefix + ':' + classString;
+
+	if (addClassPrefixToClassStringCache[prefix + classString]) {
+		return addClassPrefixToClassStringCache[cacheKey];
+	} else {
+		return addClassPrefixToClassStringCache[cacheKey] = classString.split(' ').map(className => {
+			return addPrefixToClassName(prefix, className);
+		}).join(' ');
+	}
+}
+
+let precomputeClassesCache = {};
+function precomputeClasses(classes) {
+	if (precomputeClassesCache[classes]) {
+		return precomputeClassesCache[classes];
+	} else {
+		return precomputeClassesCache[classes] = classes.split(' ').map(className => {
+			// replace state shorthand
+			className = className.replace(/^\:\:\:/, 'state-');
+			return className;
+		}).join(' ');
+	}
 }
 
 function addClassPrefixToNode (node, displayName, _isChild) {
@@ -21,18 +55,14 @@ function addClassPrefixToNode (node, displayName, _isChild) {
 		return node;
 	}
 
-	node = copy(node);
+	node = unfreezeObjectByShallowCopy(node);
 
-	let props = node.props = copy(node.props),
+	let props = node.props = unfreezeObjectByShallowCopy(node.props),
 		prefix = 'app-' + toHyphenDelimited(displayName);
 
 	if (props.classes) {
 		// precompute class names
-		props.classes = props.classes.split(' ').map(className => {
-			// replace state shorthand
-			className = className.replace(/^\:\:\:/, 'state-');
-			return className;
-		}).join(' ');
+		props.classes = precomputeClasses(props.classes);
 	}
 
 	// modify class strings
@@ -73,34 +103,39 @@ function traverseDOMTree (displayName, item) {
 	}
 }
 
+let addClassesToNodeCache = {};
 function addClassesToNode (node, classes) {
 	if (!node || !node.props || !classes || !node.props.className) {
 		return node;
 	}
 
-	node = copy(node);
-	node.props = copy(node.props);
+	node = unfreezeObjectByShallowCopy(node);
+	node.props = unfreezeObjectByShallowCopy(node.props);
 
-	let classArray = node.props.className.split(' ');
+	if (!addClassesToNodeCache[node.props.className]) {
+		let classArray = node.props.className.split(' ');
 
-	classes.split(' ').forEach(item => {
-		if (classArray.indexOf(item) === -1) {
-			classArray.push(item);
-		}
-	});
+		classes.split(' ').forEach(item => {
+			if (classArray.indexOf(item) === -1) {
+				classArray.push(item);
+			}
+		});
 
-	node.props.className = classArray.join(' ');
+		node.props.className = addClassesToNodeCache[node.props.className] = classArray.join(' ');
+	} else {
+		node.props.className = addClassesToNodeCache[node.props.className];
+	}
 
 	return node;
 }
 
-export default componentName => {
+export default displayName => {
 	return target => {
 		let render = target.prototype.render;
 
 		target.prototype.render = function () {
 			let node = render.apply(this, arguments);
-			node = addClassPrefixToNode(node, componentName);
+			node = addClassPrefixToNode(node, displayName);
 			node = addClassesToNode(node, this.props.className);
 			return node;
 		};
