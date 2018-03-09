@@ -115,7 +115,6 @@ function traverseDOMTree(displayName, item) {
 	}
 }
 
-var addClassesToNodeCache = {};
 function addClassesToNode(node, classes) {
 	if (!node || !node.props || !classes || !node.props.className) {
 		return node;
@@ -124,21 +123,15 @@ function addClassesToNode(node, classes) {
 	node = unfreezeObjectByShallowCopy(node);
 	node.props = unfreezeObjectByShallowCopy(node.props);
 
-	if (!addClassesToNodeCache[node.props.className]) {
-		(function () {
-			var classArray = node.props.className.split(' ');
+	var classArray = node.props.className.split(' ');
 
-			classes.split(' ').forEach(function (item) {
-				if (classArray.indexOf(item) === -1) {
-					classArray.push(item);
-				}
-			});
+	classes.split(' ').forEach(function (item) {
+		if (classArray.indexOf(item) === -1) {
+			classArray.push(item);
+		}
+	});
 
-			node.props.className = addClassesToNodeCache[node.props.className] = classArray.join(' ');
-		})();
-	} else {
-		node.props.className = addClassesToNodeCache[node.props.className];
-	}
+	node.props.className = classArray.join(' ');
 
 	return node;
 }
